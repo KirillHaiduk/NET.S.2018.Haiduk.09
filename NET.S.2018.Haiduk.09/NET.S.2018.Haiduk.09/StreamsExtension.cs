@@ -1,5 +1,7 @@
-﻿using System;
+using System;
 using System.IO;
+using System.Linq;
+using System.Text;
 
 namespace NET.S._2018.Haiduk._09
 {
@@ -13,21 +15,21 @@ namespace NET.S._2018.Haiduk._09
         #region TODO: Implement by byte copy logic using class FileStream as a backing store stream .
 
         /// <summary>
-        /// 
+        /// Method for copy from one file into another by byte
         /// </summary>
-        /// <param name="sourcePath"></param>
-        /// <param name="destinationPath"></param>
-        /// <returns></returns>
+        /// <param name="sourcePath">Path of source file</param>
+        /// <param name="destinationPath">Path of destination file</param>
+        /// <returns>Number of copied bytes</returns>
         public static int ByByteCopy(string sourcePath, string destinationPath)
         {
             InputValidation(sourcePath, destinationPath);
-            using (var fs1 = File.OpenRead(sourcePath))
-            using (var fs2 = File.Create(destinationPath))
+            using (var fileStream1 = File.OpenRead(sourcePath))
+            using (var fileStream2 = File.Create(destinationPath))
             {
                 int countBytes = 0;
-                for (int i = 0; i < fs1.Length; i++)
+                for (int i = 0; i < fileStream1.Length; i++)
                 {
-                    fs2.WriteByte((byte)fs1.ReadByte());
+                    fileStream2.WriteByte((byte)fileStream1.ReadByte());
                     countBytes++;
                 }
 
@@ -40,26 +42,27 @@ namespace NET.S._2018.Haiduk._09
         #region TODO: Implement by byte copy logic using class MemoryStream as a backing store stream.
 
         /// <summary>
-        /// 
+        /// Method for copy from one file into another by byte using MemoryStream class
         /// </summary>
-        /// <param name="sourcePath"></param>
-        /// <param name="destinationPath"></param>
-        /// <returns></returns>
+        /// <param name="sourcePath">Path of source file</param>
+        /// <param name="destinationPath">Path of destination file</param>
+        /// <returns>Number of copied bytes</returns>
         public static int InMemoryByByteCopy(string sourcePath, string destinationPath)
-        {
-            // TODO: step 1. Use StreamReader to read entire file in string
-
-            // TODO: step 2. Create byte array on base string content - use  System.Text.Encoding class
-
-            // TODO: step 3. Use MemoryStream instance to read from byte array (from step 2)
-
-            // TODO: step 4. Use MemoryStream instance (from step 3) to write it content in new byte array
-
-            // TODO: step 5. Use Encoding class instance (from step 2) to create char array on byte array content
-
-            // TODO: step 6. Use StreamWriter here to write char array content in new file
-
-            throw new NotImplementedException();
+        {            
+            InputValidation(sourcePath, destinationPath);            
+            using (var streamReader = new StreamReader(sourcePath))
+            using (var streamWriter = new StreamWriter(destinationPath))
+            {
+                Encoding encoding = Encoding.ASCII;
+                byte[] bytes = encoding.GetBytes(streamReader.ReadToEnd());
+                using (var memoryStream = new MemoryStream(bytes, 0, bytes.Length))
+                {
+                    byte[] newBytes = memoryStream.ToArray();
+                    char[] chars = encoding.GetChars(newBytes);
+                    streamWriter.Write(chars);                    
+                    return newBytes.Length;
+                }
+            }
         }
 
         #endregion
@@ -67,14 +70,27 @@ namespace NET.S._2018.Haiduk._09
         #region TODO: Implement by block copy logic using FileStream buffer.
 
         /// <summary>
-        /// 
+        /// Method for copy from one file into another using byte array
         /// </summary>
-        /// <param name="sourcePath"></param>
-        /// <param name="destinationPath"></param>
-        /// <returns></returns>
+        /// <param name="sourcePath">Path of source file</param>
+        /// <param name="destinationPath">Path of destination file</param>
+        /// <returns>Number of copied bytes</returns>
         public static int ByBlockCopy(string sourcePath, string destinationPath)
         {
-            throw new NotImplementedException();
+            InputValidation(sourcePath, destinationPath);
+            byte[] bytes;            
+            using (var fileStream1 = new FileStream(sourcePath, FileMode.Open))
+            {
+                bytes = new byte[fileStream1.Length];
+                fileStream1.Read(bytes, 0, bytes.Length);
+            }
+
+            using (FileStream fileStream2 = new FileStream(destinationPath, FileMode.OpenOrCreate))
+            {
+                fileStream2.Write(bytes, 0, bytes.Length);
+            }
+
+            return File.ReadAllBytes(destinationPath).Length;
         }
 
         #endregion
@@ -82,15 +98,15 @@ namespace NET.S._2018.Haiduk._09
         #region TODO: Implement by block copy logic using MemoryStream.
 
         /// <summary>
-        /// 
+        /// Method for copy from one file into another using MemoryStream class
         /// </summary>
-        /// <param name="sourcePath"></param>
-        /// <param name="destinationPath"></param>
-        /// <returns></returns>
+        /// <param name="sourcePath">Path of source file</param>
+        /// <param name="destinationPath">Path of destination file</param>
+        /// <returns>Number of copied bytes</returns>
         public static int InMemoryByBlockCopy(string sourcePath, string destinationPath)
         {
-            // TODO: Use InMemoryByByteCopy method's approach
-            throw new NotImplementedException();
+            InputValidation(sourcePath, destinationPath);
+            return InMemoryByByteCopy(sourcePath, destinationPath);
         }
 
         #endregion
@@ -98,14 +114,29 @@ namespace NET.S._2018.Haiduk._09
         #region TODO: Implement by block copy logic using class-decorator BufferedStream.
 
         /// <summary>
-        /// 
+        /// Method for copy from one file into another using BufferedStream class
         /// </summary>
-        /// <param name="sourcePath"></param>
-        /// <param name="destinationPath"></param>
-        /// <returns></returns>
+        /// <param name="sourcePath">Path of source file</param>
+        /// <param name="destinationPath">Path of destination file</param>
+        /// <returns>Number of copied bytes</returns>
         public static int BufferedCopy(string sourcePath, string destinationPath)
         {
-            throw new NotImplementedException();
+            InputValidation(sourcePath, destinationPath);
+            byte[] bytes;            
+            using (var fileStream = new FileStream(sourcePath, FileMode.Open))
+            using (var bufferedStream = new BufferedStream(fileStream, (int)fileStream.Length))
+            {
+                bytes = new byte[bufferedStream.Length];
+                bufferedStream.Read(bytes, 0, bytes.Length);
+            }
+
+            using (var stream = new FileStream(destinationPath, FileMode.OpenOrCreate))
+            using (var bufferedStream = new BufferedStream(stream))
+            {
+                bufferedStream.Write(bytes, 0, bytes.Length);
+            }
+
+            return bytes.Length;
         }
 
         #endregion
@@ -113,14 +144,28 @@ namespace NET.S._2018.Haiduk._09
         #region TODO: Implement by line copy logic using FileStream and classes text-adapters StreamReader/StreamWriter
 
         /// <summary>
-        /// 
+        /// Method for copy from one file into another using reading and writing line by line
         /// </summary>
-        /// <param name="sourcePath"></param>
-        /// <param name="destinationPath"></param>
-        /// <returns></returns>
+        /// <param name="sourcePath">Path of source file</param>
+        /// <param name="destinationPath">Path of destination file</param>
+        /// <returns>Number of copied lines (strings)</returns>
         public static int ByLineCopy(string sourcePath, string destinationPath)
         {
-            throw new NotImplementedException();
+            InputValidation(sourcePath, destinationPath);
+            int countStrings = 0;
+
+            using (var fileStream = File.OpenRead(sourcePath))
+            using (var steramReader = new StreamReader(fileStream))
+            using (var streamWriter = new StreamWriter(destinationPath))
+            {
+                while (steramReader.Peek() > -1)
+                {
+                    streamWriter.WriteLine(steramReader.ReadLine());
+                    countStrings++;
+                }
+            }
+
+            return countStrings;
         }
 
         #endregion
@@ -128,14 +173,25 @@ namespace NET.S._2018.Haiduk._09
         #region TODO: Implement content comparison logic of two files 
 
         /// <summary>
-        /// 
+        /// Method for checking equality of source and destination files after reading and writing
         /// </summary>
-        /// <param name="sourcePath"></param>
-        /// <param name="destinationPath"></param>
-        /// <returns></returns>
+        /// <param name="sourcePath">Path of source file</param>
+        /// <param name="destinationPath">Path of destination file</param>
+        /// <returns>True if files are equal; otherwise, false</returns>
         public static bool IsContentEquals(string sourcePath, string destinationPath)
         {
-            throw new NotImplementedException();
+            InputValidation(sourcePath, destinationPath);
+            using (var sourceFileStream = new FileStream(sourcePath, FileMode.Open))
+            using (var destinationFileStream = new FileStream(destinationPath, FileMode.Create))
+            {
+                if (sourceFileStream.Length != destinationFileStream.Length)
+                {
+                    return false;
+                }
+
+                InputValidation(sourcePath, destinationPath);
+                return File.ReadAllBytes(sourcePath).SequenceEqual(File.ReadAllBytes(destinationPath));
+            }
         }
 
         #endregion
@@ -147,13 +203,21 @@ namespace NET.S._2018.Haiduk._09
         #region TODO: Implement validation logic
 
         /// <summary>
-        /// 
+        /// Method for validating source and destination paths
         /// </summary>
-        /// <param name="sourcePath"></param>
-        /// <param name="destinationPath"></param>
+        /// <param name="sourcePath">Path of source file</param>
+        /// <param name="destinationPath">Path of destination file</param>        
         private static void InputValidation(string sourcePath, string destinationPath)
         {
+            if (string.IsNullOrEmpty(sourcePath) || string.IsNullOrEmpty(destinationPath))
+            {
+                throw new ArgumentNullException("Wrong path");
+            }
 
+            if (!File.Exists(sourcePath))
+            {
+                throw new FileNotFoundException($"File {nameof(sourcePath)} not found");
+            }            
         }
 
         #endregion

@@ -181,6 +181,37 @@ namespace NET.S._2018.Haiduk._09
         public static bool IsContentEquals(string sourcePath, string destinationPath)
         {
             InputValidation(sourcePath, destinationPath);
+            using (var sourceFileStream = File.OpenRead(sourcePath))
+            using (var destinationFileStream = File.OpenRead(destinationPath))
+            using (var sourceStreamReader = new StreamReader(sourceFileStream))
+            using (var destinationStreamReader = new StreamReader(destinationFileStream))
+            {
+                if (sourceFileStream.Length != destinationFileStream.Length)
+                {
+                    return false;
+                }
+
+                while (sourceStreamReader.Peek() > -1)
+                {
+                    if (sourceStreamReader.ReadLine() != destinationStreamReader.ReadLine())
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+        }
+
+        /// <summary>
+        /// Method for checking equality of source and destination files by lines after reading and writing
+        /// </summary>
+        /// <param name="sourcePath">Path of source file</param>
+        /// <param name="destinationPath">Path of destination file</param>
+        /// <returns>True if files are equal; otherwise, false</returns>
+        public static bool IsContentEqualByLines(string sourcePath, string destinationPath)
+        {
+            InputValidation(sourcePath, destinationPath);
             using (var sourceFileStream = new FileStream(sourcePath, FileMode.Open))
             using (var destinationFileStream = new FileStream(destinationPath, FileMode.Create))
             {
@@ -188,8 +219,7 @@ namespace NET.S._2018.Haiduk._09
                 {
                     return false;
                 }
-
-                InputValidation(sourcePath, destinationPath);
+                                
                 return File.ReadAllBytes(sourcePath).SequenceEqual(File.ReadAllBytes(destinationPath));
             }
         }
